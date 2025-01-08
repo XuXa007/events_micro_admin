@@ -1,0 +1,22 @@
+###
+# @name get
+GET localhost:8080/event/3
+Content-Type: application/json
+
+###
+# @name post
+POST localhost:8080/event
+Content-Type: application/json
+
+{
+  "name": "Conference 2024",
+  "location": "New York",
+  "date": "2024-12-31"
+}
+
+
+
+###
+# @name New Request
+DELETE localhost:8080/event/1
+

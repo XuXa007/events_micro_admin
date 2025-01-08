@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+option java_package = "com.example.grpc";
+option java_outer_classname = "EventServiceProto";
+
+// Сервис для работы с событиями
+service EventService {
+  // Получить событие по ID
+  rpc GetEvent (GetEventRequest) returns (EventResponse);
+
+  // Создать новое событие
+  rpc CreateEvent (CreateEventRequest) returns (CreateEventResponse);
+
+  // Обновить существующее событие
+  rpc UpdateEvent (UpdateEventRequest) returns (UpdateEventResponse);
+
+  // Удалить событие
+  rpc DeleteEvent (DeleteEventRequest) returns (DeleteEventResponse);
+}
+
+// Запрос на получение события
+message GetEventRequest {
+  int64 id = 1;
+}
+
+// Ответ с данными события
+message EventResponse {
+  int64 id = 1;
+  string name = 2;
+  string location = 3;
+  string date = 4;
+}
+
+// Запрос на создание нового события
+message CreateEventRequest {
+  string name = 1;
+  string location = 2;
+  string date = 3;
+}
+
+// Ответ с ID созданного события
+message CreateEventResponse {
+  int64 id = 1;
+}
+
+// Запрос на обновление существующего события
+message UpdateEventRequest {
+  int64 id = 1;
+  string name = 2;
+  string location = 3;
+  string date = 4;
+}
+
+// Ответ об успешности обновления
+message UpdateEventResponse {
+  bool success = 1;
+}
+
+// Запрос на удаление события
+message DeleteEventRequest {
+  int64 id = 1;
+}
+
+// Ответ об успешности удаления
+message DeleteEventResponse {
+  bool success = 1;
+}

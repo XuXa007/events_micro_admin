@@ -1,0 +1,146 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=events
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # веб-интерфейс
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  # --- Redis ---
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+
+  # --- OpenSearch ---
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=StrongP@ssw0rd!"
+      - "plugins.security.ssl.http.enabled=false"
+      - "plugins.security.ssl.transport.enabled=true"
+      - "plugins.security.allow_unsafe_democertificates=true"
+      - "plugins.security.allow_default_init_securityindex=true"
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+
+
+  # --- Logstash ---
+  logstash:
+    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:latest
+    container_name: logstash
+    volumes:
+      - ./logstash/pipeline/:/usr/share/logstash/pipeline/
+    ports:
+      - "5044:5044"
+    environment:
+      - "OPENSEARCH_HOSTS=http://opensearch:9200"
+    depends_on:
+      - opensearch
+
+  # --- OpenSearch Dashboards ---
+  dashboards:
+    image: opensearchproject/opensearch-dashboards:2.10.0
+    container_name: dashboards
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      - OPENSEARCH_SECURITY_ENABLED=false
+    ports:
+      - "5601:5601"
+    depends_on:
+      - opensearch
+
+
+  # --- Prometheus ---
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+
+  # --- Grafana ---
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  # --- Domain-сервис (CRUD, gRPC) ---
+  domain-service:
+    build: ./domain-service
+    container_name: domain-service
+    ports:
+      - "8081:8081"
+      - "6565:6565"
+    depends_on:
+      - logstash
+      - rabbitmq
+      - postgres
+      - redis
+
+
+  # --- Gateway-сервис (REST, gRPC клиент) ---
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - logstash
+      - domain-service
+      - redis
+
+#    restart: always
+
+volumes:
+  postgres_data:
+  opensearch-data:

@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gateway:8080']
+    scrape_interval: 5s
+
+  - job_name: 'domain-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['domain-service:8081']
+    scrape_interval: 5s
